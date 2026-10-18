@@ -11,13 +11,19 @@ import {
   Lock, 
   CheckCircle2, 
   RefreshCw,
-  FolderGit2
+  FolderGit2,
+  Play,
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
 import type { ConsentAuditRecord } from '../types/legal';
+import { runFirestoreSecurityCheck, type FirestoreTestResult } from '../services/firestoreTestService';
 
 export const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [consents, setConsents] = useState<ConsentAuditRecord[]>([]);
+  const [testingFirestore, setTestingFirestore] = useState(false);
+  const [firestoreTestResult, setFirestoreTestResult] = useState<FirestoreTestResult | null>(null);
 
   useEffect(() => {
     // Carga de registros auditados de acudientes (Local + Firestore Sync)
@@ -51,6 +57,16 @@ export const AdminDashboard: React.FC = () => {
       console.error('Error cargando auditorías:', e);
     }
   }, []);
+
+  const handleTestFirestore = async () => {
+    setTestingFirestore(true);
+    try {
+      const result = await runFirestoreSecurityCheck();
+      setFirestoreTestResult(result);
+    } finally {
+      setTestingFirestore(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-calido-50 text-calido-900 pb-16">
@@ -103,7 +119,7 @@ export const AdminDashboard: React.FC = () => {
 
             <button
               onClick={() => logout()}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-vino-700/80 hover:bg-vino-700 text-rosa-100 hover:text-white border border-vino-600 transition-all"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-vino-700/80 hover:bg-vino-700 text-rosa-100 hover:text-white border border-vino-600 transition-all cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Cerrar Sesión</span>
@@ -129,7 +145,7 @@ export const AdminDashboard: React.FC = () => {
                 <Lock className="w-4 h-4 text-emerald-600" />
                 Regla esProfeKami() Activa
               </p>
-              <p className="text-xs text-calido-600 font-mono bg-calido-100 p-2 rounded-lg">
+              <p className="text-xs text-calido-600 font-mono bg-calido-100 p-2 rounded-lg break-all">
                 request.auth.token.email == '{SUPER_ADMIN_EMAIL}'
               </p>
             </div>
@@ -181,6 +197,70 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </section>
 
+        {/* Sección Interactiva: Test de Validación de Reglas de Firestore */}
+        <section className="bg-white rounded-3xl border border-vino-200 p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-outfit font-black text-lg text-vino-950 flex items-center gap-2">
+                <Lock className="w-5 h-5 text-vino-700" />
+                Diagnóstico de Regla de Seguridad Firestore (esProfeKami)
+              </h3>
+              <p className="text-xs text-calido-600">
+                Ejecuta una operación de prueba de lectura/escritura para verificar la restricción activa de correo.
+              </p>
+            </div>
+            <button
+              onClick={handleTestFirestore}
+              disabled={testingFirestore}
+              className="flex items-center gap-2 px-4 py-2.5 bg-vino-700 hover:bg-vino-800 text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 disabled:opacity-60 cursor-pointer self-start sm:self-auto"
+            >
+              {testingFirestore ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Validando en Firebase...</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4 fill-white" />
+                  <span>Ejecutar Test de Reglas Firestore</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {firestoreTestResult && (
+            <div className={`p-4 rounded-2xl border text-xs space-y-2 animate-in fade-in ${
+              firestoreTestResult.success 
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-950' 
+                : firestoreTestResult.status === 'BLOQUEADO_POR_REGLA'
+                ? 'bg-amber-50 border-amber-300 text-amber-950'
+                : 'bg-rose-50 border-rose-300 text-rose-950'
+            }`}>
+              <div className="flex items-center justify-between font-bold">
+                <span className="flex items-center gap-1.5 font-outfit text-sm">
+                  {firestoreTestResult.success ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  ) : firestoreTestResult.status === 'BLOQUEADO_POR_REGLA' ? (
+                    <Lock className="w-5 h-5 text-amber-600" />
+                  ) : (
+                    <AlertTriangle className="w-5 h-5 text-rose-600" />
+                  )}
+                  Resultado: {firestoreTestResult.status}
+                </span>
+                <span className="text-[11px] font-mono text-calido-600">
+                  Hora: {firestoreTestResult.timestamp}
+                </span>
+              </div>
+              <p className="leading-relaxed">{firestoreTestResult.message}</p>
+              <div className="text-[11px] font-mono bg-white/70 p-2.5 rounded-xl border border-calido-200">
+                <p><strong>Usuario Ejecutor:</strong> {firestoreTestResult.executedBy || 'Sin sesión'}</p>
+                {firestoreTestResult.code && <p><strong>Código Firebase:</strong> {firestoreTestResult.code}</p>}
+                <p><strong>Regla esperada:</strong> request.auth.token.email == '{SUPER_ADMIN_EMAIL}'</p>
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* Sección: Tabla de Trazabilidad Legal de Acudientes */}
         <section className="bg-white rounded-3xl border border-vino-100 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-calido-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -198,7 +278,7 @@ export const AdminDashboard: React.FC = () => {
                 const stored = localStorage.getItem('profe_kami_sic_consents');
                 if (stored) setConsents(JSON.parse(stored));
               }}
-              className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-vino-800 bg-vino-50 hover:bg-vino-100 border border-vino-200 rounded-xl transition-colors self-start sm:self-auto"
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-vino-800 bg-vino-50 hover:bg-vino-100 border border-vino-200 rounded-xl transition-colors self-start sm:self-auto cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Actualizar Auditoría
