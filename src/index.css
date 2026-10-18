@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    background-color: #faf8f6;
+    color: #2d2623;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Custom scrollbar matching Vino Tinto / Pastel tones */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f5f0ec;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #f4adbc;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #c83256;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(249, 210, 217, 0.4);
+  }
+  
+  .glass-vino {
+    background: rgba(122, 21, 45, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .text-gradient-vino {
+    background: linear-gradient(135deg, #7a152d 0%, #c83256 50%, #e14771 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .badge-math {
+    background: linear-gradient(135deg, #fdf2f4 0%, #ffdce4 100%);
+    border: 1px solid #f9d2d9;
+    color: #9e1c3b;
+  }
+}
